@@ -1,0 +1,529 @@
+openapi: 3.0.3
+info:
+  title: Starlink Enterprise Dashboard API (Demo)
+  version: 0.1.0
+servers:
+  - url: https://api.example.com
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Telemetry
+  - name: Terminals
+  - name: Metrics
+  - name: Alerts
+  - name: Fleet
+
+paths:
+  /v1/telemetry:
+    post:
+      tags: [Telemetry]
+      summary: Ingest telemetry datapoints (idempotent)
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+          description: Reuse the same key on retries to prevent duplicate ingestion.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TelemetryIngestRequest" }
+      responses:
+        "202":
+          description: Accepted for processing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TelemetryIngestResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /v1/terminals:
+    get:
+      tags: [Terminals]
+      summary: List terminals for an account (inventory + health)
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [online, offline, degraded]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - in: query
+          name: cursor
+          schema: { type: string }
+          description: Opaque pagination cursor.
+      responses:
+        "200":
+          description: Terminals list
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TerminalListResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /v1/terminals/{terminal_id}:
+    get:
+      tags: [Terminals]
+      summary: Get terminal detail (health + last seen + metadata)
+      parameters:
+        - in: path
+          name: terminal_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Terminal detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TerminalDetail" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /v1/terminals/{terminal_id}/metrics:
+    get:
+      tags: [Metrics]
+      summary: Get time-series metrics for a terminal
+      parameters:
+        - in: path
+          name: terminal_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: from
+          required: true
+          schema: { type: string, format: date-time }
+          description: RFC3339 timestamp (inclusive)
+        - in: query
+          name: to
+          required: true
+          schema: { type: string, format: date-time }
+          description: RFC3339 timestamp (exclusive)
+        - in: query
+          name: interval
+          schema:
+            type: string
+            enum: [1m, 5m, 1h]
+            default: 5m
+          description: Aggregation level for dashboard charts.
+        - in: query
+          name: metrics
+          schema: { type: string }
+          description: Comma-separated metric keys (e.g. latency_ms,packet_loss_pct,uptime_pct).
+      responses:
+        "200":
+          description: Metrics time-series
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MetricsResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /v1/alerts:
+    get:
+      tags: [Alerts]
+      summary: List alerts (dashboard alerts page)
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [open, acknowledged, resolved]
+            default: open
+        - in: query
+          name: severity
+          schema:
+            type: string
+            enum: [info, warn, critical]
+        - in: query
+          name: terminal_id
+          schema: { type: string }
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        "200":
+          description: Alerts list
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlertsListResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+  /v1/fleet/health:
+    get:
+      tags: [Fleet]
+      summary: Fleet health summary (top-level dashboard tiles)
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          required: true
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Fleet health summary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FleetHealthResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Invalid request (missing/invalid parameters, malformed JSON, etc.)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: bad_request
+            message: "Invalid 'from'/'to' range"
+            request_id: "req_123"
+
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: unauthorized
+            message: "Missing or invalid bearer token"
+            request_id: "req_123"
+
+    Forbidden:
+      description: Authenticated but not allowed (RBAC / scope)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: forbidden
+            message: "Token lacks required scope: telemetry:write"
+            request_id: "req_123"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: not_found
+            message: "Terminal not found"
+            request_id: "req_123"
+
+    Conflict:
+      description: Conflict (e.g., duplicate idempotency key with different payload)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: conflict
+            message: "Idempotency-Key already used with a different request body"
+            request_id: "req_123"
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema: { type: integer }
+        X-RateLimit-Limit:
+          description: Request limit in the current window.
+          schema: { type: integer }
+        X-RateLimit-Remaining:
+          description: Requests remaining in the current window.
+          schema: { type: integer }
+        X-RateLimit-Reset:
+          description: Epoch timestamp when the window resets.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: rate_limited
+            message: "Too many requests"
+            request_id: "req_123"
+
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: internal_error
+            message: "Unexpected error"
+            request_id: "req_123"
+
+    ServiceUnavailable:
+      description: Temporary outage / overload / maintenance
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+          example:
+            error: service_unavailable
+            message: "Service temporarily unavailable"
+            request_id: "req_123"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error, message, request_id]
+      properties:
+        error:
+          type: string
+          example: bad_request
+        message:
+          type: string
+          example: "Invalid parameter"
+        request_id:
+          type: string
+          description: Useful for support/debugging
+
+    HealthStatus:
+      type: string
+      enum: [healthy, degraded, offline]
+
+    TelemetryIngestRequest:
+      type: object
+      required: [terminal_id, timestamp, metrics]
+      properties:
+        terminal_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          additionalProperties: true
+          example:
+            latency_ms: 52.3
+            packet_loss_pct: 0.2
+            uptime_pct: 99.98
+            downlink_mbps: 140.2
+            uplink_mbps: 18.4
+
+    TelemetryIngestResponse:
+      type: object
+      required: [request_id, accepted]
+      properties:
+        request_id:
+          type: string
+        accepted:
+          type: boolean
+          example: true
+
+    TerminalSummary:
+      type: object
+      required: [terminal_id, health_status, last_seen]
+      properties:
+        terminal_id:
+          type: string
+        name:
+          type: string
+        health_status:
+          $ref: "#/components/schemas/HealthStatus"
+        last_seen:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [online, offline, degraded]
+        location:
+          type: object
+          properties:
+            label: { type: string }
+            lat: { type: number, format: double }
+            lon: { type: number, format: double }
+
+    TerminalListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TerminalSummary"
+        next_cursor:
+          type: string
+          nullable: true
+
+    TerminalDetail:
+      allOf:
+        - $ref: "#/components/schemas/TerminalSummary"
+        - type: object
+          properties:
+            firmware_version:
+              type: string
+            account_id:
+              type: string
+            health_factors:
+              type: array
+              description: Explainable "why degraded" list for drill-down.
+              items:
+                type: object
+                properties:
+                  factor:
+                    type: string
+                    example: packet_loss_pct
+                  value:
+                    type: number
+                    format: double
+                  threshold:
+                    type: number
+                    format: double
+                  message:
+                    type: string
+
+    MetricPoint:
+      type: object
+      required: [t, v]
+      properties:
+        t:
+          type: string
+          format: date-time
+        v:
+          type: number
+          format: double
+
+    MetricsResponse:
+      type: object
+      required: [terminal_id, from, to, interval, series]
+      properties:
+        terminal_id:
+          type: string
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        interval:
+          type: string
+          enum: [1m, 5m, 1h]
+        series:
+          type: object
+          description: Map of metric_key -> array of points
+          additionalProperties:
+            type: array
+            items: { $ref: "#/components/schemas/MetricPoint" }
+
+    Alert:
+      type: object
+      required: [alert_id, terminal_id, severity, type, message, created_at, status]
+      properties:
+        alert_id:
+          type: string
+        terminal_id:
+          type: string
+        severity:
+          type: string
+          enum: [info, warn, critical]
+        type:
+          type: string
+          example: latency_spike
+        message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [open, acknowledged, resolved]
+
+    AlertsListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Alert" }
+        next_cursor:
+          type: string
+          nullable: true
+
+    FleetHealthResponse:
+      type: object
+      required: [from, to, counts]
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        counts:
+          type: object
+          required: [healthy, degraded, offline]
+          properties:
+            healthy: { type: integer }
+            degraded: { type: integer }
+            offline: { type: integer }
+        top_issues:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string, example: packet_loss_spike }
+              count: { type: integer }
+              message: { type: string }

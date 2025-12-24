@@ -1,0 +1,1123 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Starlink Enterprise Dashboard API (Demo)",
+        "description": "Mock API server for Starlink Enterprise Dashboard with realistic data",
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/v1/telemetry": {
+            "post": {
+                "summary": "Ingest Telemetry",
+                "description": "Ingest telemetry datapoints (idempotent)\n\nThis endpoint accepts telemetry data from terminals and returns an acceptance response.\nIn a real implementation, this would:\n- Validate the terminal_id exists\n- Store the telemetry data in a time-series database\n- Handle idempotency using the provided key",
+                "operationId": "ingest_telemetry_v1_telemetry_post",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "Idempotency-Key",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Idempotency-Key"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TelemetryIngestRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TelemetryIngestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/terminals": {
+            "get": {
+                "summary": "List Terminals",
+                "description": "List terminals for an account (inventory + health)\n\nReturns a paginated list of terminals with their current health status.\nUse the cursor parameter for pagination through large datasets.",
+                "operationId": "list_terminals_v1_terminals_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "pattern": "^(online|offline|degraded)$"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Status"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 500,
+                            "minimum": 1,
+                            "default": 100,
+                            "title": "Limit"
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Cursor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TerminalListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/terminals/{terminal_id}": {
+            "get": {
+                "summary": "Get Terminal Detail",
+                "description": "Get terminal detail (health + last seen + metadata)\n\nReturns detailed information about a specific terminal including:\n- Current health status and contributing factors\n- Last seen timestamp\n- Firmware version and account information",
+                "operationId": "get_terminal_detail_v1_terminals__terminal_id__get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "terminal_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Terminal Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TerminalDetail"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/terminals/{terminal_id}/metrics": {
+            "get": {
+                "summary": "Get Terminal Metrics",
+                "description": "Get time-series metrics for a terminal\n\nReturns time-series data for specified metrics within the given time range.\nAvailable metrics: latency_ms, packet_loss_pct, uptime_pct, downlink_mbps, uplink_mbps",
+                "operationId": "get_terminal_metrics_v1_terminals__terminal_id__metrics_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "terminal_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Terminal Id"
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "RFC3339 timestamp (inclusive)",
+                            "title": "From"
+                        },
+                        "description": "RFC3339 timestamp (inclusive)"
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "RFC3339 timestamp (exclusive)",
+                            "title": "To"
+                        },
+                        "description": "RFC3339 timestamp (exclusive)"
+                    },
+                    {
+                        "name": "interval",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/Interval"
+                                }
+                            ],
+                            "description": "Aggregation level",
+                            "default": "5m",
+                            "title": "Interval"
+                        },
+                        "description": "Aggregation level"
+                    },
+                    {
+                        "name": "metrics",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Comma-separated metric keys",
+                            "title": "Metrics"
+                        },
+                        "description": "Comma-separated metric keys"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MetricsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/alerts": {
+            "get": {
+                "summary": "List Alerts",
+                "description": "List alerts (dashboard alerts page)\n\nReturns a filtered and paginated list of alerts for the dashboard.\nSupports filtering by status, severity, terminal, and time range.",
+                "operationId": "list_alerts_v1_alerts_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/components/schemas/AlertStatus"
+                                }
+                            ],
+                            "description": "Filter by alert status",
+                            "default": "open",
+                            "title": "Status"
+                        },
+                        "description": "Filter by alert status"
+                    },
+                    {
+                        "name": "severity",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/AlertSeverity"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by severity",
+                            "title": "Severity"
+                        },
+                        "description": "Filter by severity"
+                    },
+                    {
+                        "name": "terminal_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by terminal",
+                            "title": "Terminal Id"
+                        },
+                        "description": "Filter by terminal"
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by creation time",
+                            "title": "From"
+                        },
+                        "description": "Filter by creation time"
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by creation time",
+                            "title": "To"
+                        },
+                        "description": "Filter by creation time"
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 500,
+                            "minimum": 1,
+                            "default": 100,
+                            "title": "Limit"
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Cursor"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AlertsListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/fleet/health": {
+            "get": {
+                "summary": "Get Fleet Health",
+                "description": "Fleet health summary (top-level dashboard tiles)\n\nReturns aggregate health statistics for the entire fleet including:\n- Counts of terminals by health status\n- Top issues affecting the fleet",
+                "operationId": "get_fleet_health_v1_fleet_health_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Start time for health summary",
+                            "title": "From"
+                        },
+                        "description": "Start time for health summary"
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "End time for health summary",
+                            "title": "To"
+                        },
+                        "description": "End time for health summary"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FleetHealthResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/": {
+            "get": {
+                "summary": "Root",
+                "description": "API Root - provides basic information about the service",
+                "operationId": "root__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "summary": "Health Check",
+                "description": "Health check endpoint for monitoring",
+                "operationId": "health_check_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Alert": {
+                "properties": {
+                    "alert_id": {
+                        "type": "string",
+                        "title": "Alert Id"
+                    },
+                    "terminal_id": {
+                        "type": "string",
+                        "title": "Terminal Id"
+                    },
+                    "severity": {
+                        "$ref": "#/components/schemas/AlertSeverity"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Type"
+                    },
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Created At"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/AlertStatus"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "alert_id",
+                    "terminal_id",
+                    "severity",
+                    "type",
+                    "message",
+                    "created_at",
+                    "status"
+                ],
+                "title": "Alert"
+            },
+            "AlertSeverity": {
+                "type": "string",
+                "enum": [
+                    "info",
+                    "warn",
+                    "critical"
+                ],
+                "title": "AlertSeverity"
+            },
+            "AlertStatus": {
+                "type": "string",
+                "enum": [
+                    "open",
+                    "acknowledged",
+                    "resolved"
+                ],
+                "title": "AlertStatus"
+            },
+            "AlertsListResponse": {
+                "properties": {
+                    "items": {
+                        "items": {
+                            "$ref": "#/components/schemas/Alert"
+                        },
+                        "type": "array",
+                        "title": "Items"
+                    },
+                    "next_cursor": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Next Cursor"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "items"
+                ],
+                "title": "AlertsListResponse"
+            },
+            "FleetCounts": {
+                "properties": {
+                    "healthy": {
+                        "type": "integer",
+                        "title": "Healthy"
+                    },
+                    "degraded": {
+                        "type": "integer",
+                        "title": "Degraded"
+                    },
+                    "offline": {
+                        "type": "integer",
+                        "title": "Offline"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "healthy",
+                    "degraded",
+                    "offline"
+                ],
+                "title": "FleetCounts"
+            },
+            "FleetHealthResponse": {
+                "properties": {
+                    "from_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "From Time"
+                    },
+                    "to_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "To Time"
+                    },
+                    "counts": {
+                        "$ref": "#/components/schemas/FleetCounts"
+                    },
+                    "top_issues": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "$ref": "#/components/schemas/TopIssue"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Top Issues"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "from_time",
+                    "to_time",
+                    "counts"
+                ],
+                "title": "FleetHealthResponse"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "HealthFactor": {
+                "properties": {
+                    "factor": {
+                        "type": "string",
+                        "title": "Factor"
+                    },
+                    "value": {
+                        "type": "number",
+                        "title": "Value"
+                    },
+                    "threshold": {
+                        "type": "number",
+                        "title": "Threshold"
+                    },
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "factor",
+                    "value",
+                    "threshold",
+                    "message"
+                ],
+                "title": "HealthFactor"
+            },
+            "HealthStatus": {
+                "type": "string",
+                "enum": [
+                    "healthy",
+                    "degraded",
+                    "offline"
+                ],
+                "title": "HealthStatus"
+            },
+            "Interval": {
+                "type": "string",
+                "enum": [
+                    "1m",
+                    "5m",
+                    "1h"
+                ],
+                "title": "Interval"
+            },
+            "Location": {
+                "properties": {
+                    "label": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Label"
+                    },
+                    "lat": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Lat"
+                    },
+                    "lon": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Lon"
+                    }
+                },
+                "type": "object",
+                "title": "Location"
+            },
+            "MetricPoint": {
+                "properties": {
+                    "t": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "T"
+                    },
+                    "v": {
+                        "type": "number",
+                        "title": "V"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "t",
+                    "v"
+                ],
+                "title": "MetricPoint"
+            },
+            "MetricsResponse": {
+                "properties": {
+                    "terminal_id": {
+                        "type": "string",
+                        "title": "Terminal Id"
+                    },
+                    "from_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "From Time"
+                    },
+                    "to_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "To Time"
+                    },
+                    "interval": {
+                        "$ref": "#/components/schemas/Interval"
+                    },
+                    "series": {
+                        "additionalProperties": {
+                            "items": {
+                                "$ref": "#/components/schemas/MetricPoint"
+                            },
+                            "type": "array"
+                        },
+                        "type": "object",
+                        "title": "Series"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "terminal_id",
+                    "from_time",
+                    "to_time",
+                    "interval",
+                    "series"
+                ],
+                "title": "MetricsResponse"
+            },
+            "TelemetryIngestRequest": {
+                "properties": {
+                    "terminal_id": {
+                        "type": "string",
+                        "title": "Terminal Id"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Timestamp"
+                    },
+                    "metrics": {
+                        "type": "object",
+                        "title": "Metrics"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "terminal_id",
+                    "timestamp",
+                    "metrics"
+                ],
+                "title": "TelemetryIngestRequest"
+            },
+            "TelemetryIngestResponse": {
+                "properties": {
+                    "request_id": {
+                        "type": "string",
+                        "title": "Request Id"
+                    },
+                    "accepted": {
+                        "type": "boolean",
+                        "title": "Accepted"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "request_id",
+                    "accepted"
+                ],
+                "title": "TelemetryIngestResponse"
+            },
+            "TerminalDetail": {
+                "properties": {
+                    "terminal_id": {
+                        "type": "string",
+                        "title": "Terminal Id"
+                    },
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "health_status": {
+                        "$ref": "#/components/schemas/HealthStatus"
+                    },
+                    "last_seen": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Last Seen"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TerminalStatus"
+                    },
+                    "location": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Location"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "firmware_version": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Firmware Version"
+                    },
+                    "account_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Account Id"
+                    },
+                    "health_factors": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "$ref": "#/components/schemas/HealthFactor"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Health Factors"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "terminal_id",
+                    "health_status",
+                    "last_seen",
+                    "status"
+                ],
+                "title": "TerminalDetail"
+            },
+            "TerminalListResponse": {
+                "properties": {
+                    "items": {
+                        "items": {
+                            "$ref": "#/components/schemas/TerminalSummary"
+                        },
+                        "type": "array",
+                        "title": "Items"
+                    },
+                    "next_cursor": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Next Cursor"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "items"
+                ],
+                "title": "TerminalListResponse"
+            },
+            "TerminalStatus": {
+                "type": "string",
+                "enum": [
+                    "online",
+                    "offline",
+                    "degraded"
+                ],
+                "title": "TerminalStatus"
+            },
+            "TerminalSummary": {
+                "properties": {
+                    "terminal_id": {
+                        "type": "string",
+                        "title": "Terminal Id"
+                    },
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "health_status": {
+                        "$ref": "#/components/schemas/HealthStatus"
+                    },
+                    "last_seen": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Last Seen"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TerminalStatus"
+                    },
+                    "location": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Location"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "terminal_id",
+                    "health_status",
+                    "last_seen",
+                    "status"
+                ],
+                "title": "TerminalSummary"
+            },
+            "TopIssue": {
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "title": "Type"
+                    },
+                    "count": {
+                        "type": "integer",
+                        "title": "Count"
+                    },
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "type",
+                    "count",
+                    "message"
+                ],
+                "title": "TopIssue"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        },
+        "securitySchemes": {
+            "HTTPBearer": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        }
+    }
+}
