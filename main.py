@@ -48,7 +48,7 @@ async def http_exception_handler(request, exc):
 @app.post("/v1/telemetry", response_model=TelemetryIngestResponse, status_code=202)
 async def ingest_telemetry(
     data: TelemetryIngestRequest,
-    idempotency_key: int = Header(..., alias="Idempotency-Key"), #this is a str
+    idempotency_key: str = Header(..., alias="Idempotency-Key"), #this is a str
     token: str = Depends(verify_token)
 ):
     """

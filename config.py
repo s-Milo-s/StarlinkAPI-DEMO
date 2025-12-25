@@ -29,7 +29,7 @@ ALERT_STATUS_WEIGHTS = {
 # Metrics Configuration
 METRICS_CONFIG = {
     "latency_ms": {"min": 45, "max": 85},
-    "packet_loss_pct": {"min": 0, "max": 3},
+    "packet_loss_pct": {"min": 0, "max": 5},
     "uptime_pct": {"min": 95, "max": 100},
     "downlink_mbps": {"min": 100, "max": 200},
     "uplink_mbps": {"min": 15, "max": 25}
