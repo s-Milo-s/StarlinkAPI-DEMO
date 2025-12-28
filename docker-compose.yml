@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   starlink-api:
@@ -8,8 +8,23 @@ services:
     environment:
       - ENV=development
     restart: unless-stopped
+
+    networks:
+      - starlink-net
+
+    # safer healthcheck (no curl dependency)
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
+
+networks:
+  starlink-net:
+    external: true

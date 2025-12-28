@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from enum import Enum
@@ -38,6 +38,20 @@ class ErrorResponse(BaseModel):
     error: str
     message: str
     request_id: str
+
+
+# Authentication Models
+class TokenRequest(BaseModel):
+    """Token request payload."""
+    api_secret: str
+
+
+class TokenResponse(BaseModel):
+    """Authentication token response."""
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # seconds
+    expires_at: Optional[datetime] = None
 
 
 class Location(BaseModel):

@@ -2,12 +2,12 @@ from datetime import datetime, timedelta, timezone
 from typing import List
 import random
 import uuid
-from models import (
+from app.models import (
     TerminalSummary, TerminalDetail, HealthStatus, TerminalStatus, 
     Location, Alert, AlertSeverity, AlertStatus, MetricPoint,
     HealthFactor, FleetCounts, TopIssue
 )
-from config import (
+from app.core.config import (
     DEFAULT_TERMINAL_COUNT, HEALTH_STATUS_WEIGHTS, ALERT_STATUS_WEIGHTS,
     METRICS_CONFIG, TERMINAL_LOCATIONS, ALERT_TYPES
 )
@@ -152,7 +152,7 @@ def get_mock_alerts(count: int = 20) -> List[Alert]:
 
 def get_mock_fleet_health(from_time: datetime, to_time: datetime) -> dict:
     """Generate mock fleet health data"""
-    terminals = get_mock_terminals()
+    terminals = get_mock_terminals(50)
     
     # Count terminals by health status
     healthy_count = sum(1 for t in terminals if t.health_status == HealthStatus.healthy)

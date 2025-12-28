@@ -18,8 +18,28 @@ def test_api():
     print("🚀 Testing Starlink Enterprise Dashboard API")
     print("=" * 50)
     
+    # Test authentication token endpoint
+    print("\n1. Testing authentication token...")
+    try:
+        token_request = {
+            "api_secret": "demo-secret-key"
+        }
+        response = requests.post(f"{BASE_URL}/v1/auth/token", json=token_request)
+        print(f"✅ Token request: {response.status_code}")
+        token_data = response.json()
+        print(f"   Token type: {token_data['token_type']}")
+        print(f"   Expires in: {token_data['expires_in']} seconds")
+        if 'expires_at' in token_data and token_data['expires_at']:
+            print(f"   Expires at: {token_data['expires_at']}")
+        
+        # Update headers with new token for subsequent requests
+        global HEADERS
+        HEADERS["Authorization"] = f"Bearer {token_data['access_token']}"
+    except Exception as e:
+        print(f"❌ Token request failed: {e}")
+    
     # Test health check
-    print("\n1. Testing health check...")
+    print("\n2. Testing health check...")
     try:
         response = requests.get(f"{BASE_URL}/health")
         print(f"✅ Health check: {response.status_code}")
@@ -29,7 +49,7 @@ def test_api():
         return
     
     # Test terminals list
-    print("\n2. Testing terminals list...")
+    print("\n3. Testing terminals list...")
     try:
         response = requests.get(f"{BASE_URL}/v1/terminals?limit=5", headers=HEADERS)
         print(f"✅ Terminals list: {response.status_code}")
@@ -46,7 +66,7 @@ def test_api():
         return
     
     # Test terminal detail
-    print("\n3. Testing terminal detail...")
+    print("\n4. Testing terminal detail...")
     try:
         response = requests.get(f"{BASE_URL}/v1/terminals/{terminal_id}", headers=HEADERS)
         print(f"✅ Terminal detail: {response.status_code}")
@@ -56,7 +76,7 @@ def test_api():
         print(f"❌ Terminal detail failed: {e}")
     
     # Test metrics
-    print("\n4. Testing terminal metrics...")
+    print("\n5. Testing terminal metrics...")
     try:
         now = datetime.utcnow()
         from_time = (now - timedelta(hours=1)).isoformat() + "Z"
@@ -79,7 +99,7 @@ def test_api():
         print(f"❌ Terminal metrics failed: {e}")
     
     # Test alerts
-    print("\n5. Testing alerts...")
+    print("\n6. Testing alerts...")
     try:
         response = requests.get(f"{BASE_URL}/v1/alerts?limit=5", headers=HEADERS)
         print(f"✅ Alerts: {response.status_code}")
@@ -89,7 +109,7 @@ def test_api():
         print(f"❌ Alerts failed: {e}")
     
     # Test fleet health
-    print("\n6. Testing fleet health...")
+    print("\n7. Testing fleet health...")
     try:
         now = datetime.utcnow()
         from_time = (now - timedelta(hours=1)).isoformat() + "Z"
@@ -108,7 +128,7 @@ def test_api():
         print(f"❌ Fleet health failed: {e}")
     
     # Test telemetry ingestion
-    print("\n7. Testing telemetry ingestion...")
+    print("\n8. Testing telemetry ingestion...")
     try:
         telemetry_data = {
             "terminal_id": terminal_id,
