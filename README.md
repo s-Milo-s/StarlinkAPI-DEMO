@@ -2,6 +2,44 @@
 
 A FastAPI-based mock server implementing the Starlink Enterprise Dashboard API specification with realistic sample data.
 
+## 📁 Project Structure
+
+```
+Backend/
+├── app/                    # Main application package
+│   ├── api/               # API route handlers
+│   │   ├── __init__.py
+│   │   ├── telemetry.py   # Telemetry endpoints
+│   │   ├── terminals.py   # Terminal management endpoints
+│   │   ├── monitoring.py  # Alerts and fleet health endpoints
+│   │   └── system.py      # Health check and system info
+│   ├── core/              # Core utilities and configuration
+│   │   ├── __init__.py
+│   │   ├── config.py      # Application configuration
+│   │   ├── auth.py        # Authentication utilities
+│   │   └── mock_data.py   # Mock data generators
+│   ├── models/            # Data models and schemas
+│   │   ├── __init__.py
+│   │   └── models.py      # Pydantic models
+│   ├── __init__.py
+│   └── main.py            # FastAPI application factory
+├── docs/                  # Documentation and API specs
+│   ├── openapi.yaml       # OpenAPI specification
+│   └── openapi/           # Generated OpenAPI files
+├── tests/                 # Test files
+│   ├── __init__.py
+│   └── test_api.py        # API integration tests
+├── scripts/               # Utility scripts
+│   └── generate_openapi.py
+├── main.py                # Application entrypoint
+├── requirements.txt       # Python dependencies
+├── Dockerfile            # Docker configuration
+├── docker-compose.yml    # Docker Compose setup
+├── dev.sh               # Development server script
+├── start_server.sh      # Production server script
+└── README.md            # This file
+```
+
 ## Features
 
 - ✅ All endpoints from the OpenAPI spec implemented
@@ -10,6 +48,7 @@ A FastAPI-based mock server implementing the Starlink Enterprise Dashboard API s
 - 📊 Time-series metrics generation
 - 📄 Automatic API documentation with Swagger UI
 - 🚀 Ready to run and extend
+- 🏗️ Clean, modular architecture with separated concerns
 
 ## Quick Start
 
@@ -37,6 +76,31 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 - **Interactive Docs**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 - **Health Check**: http://localhost:8000/health
+
+## Development
+
+### Development Server
+
+For development with auto-reload:
+
+```bash
+./dev.sh
+```
+
+Or manually:
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Project Structure
+
+The project follows a modular FastAPI structure:
+- `app/api/`: Route handlers organized by domain
+- `app/core/`: Shared utilities, configuration, and authentication
+- `app/models/`: Pydantic models and schemas
+- `tests/`: Test files
+- `docs/`: API documentation and specifications
 
 ## API Endpoints
 
